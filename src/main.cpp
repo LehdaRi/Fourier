@@ -5,6 +5,9 @@
 #include <SFML/Graphics.hpp>
 
 
+#define E 2.718281828459045
+
+
 using namespace std;
 using namespace Fourier;
 
@@ -55,11 +58,11 @@ sf::VertexArray getGraph(const vector<Compd>& signal,
 int main(void) {
     const unsigned signalSize = 1024;
 
-    sf::RenderWindow window(sf::VideoMode(1024, 800), "SFML window");
+    /*sf::RenderWindow window(sf::VideoMode(1024, 800), "SFML window");
     window.setFramerateLimit(60);
 
     //  Signal
-    /*vector<Compd> signal, transSignal, invSignal;
+    vector<Compd> signal, transSignal, invSignal;
     signal.resize(signalSize, Compd(0.0f, 0.0f));
     transSignal.resize(signalSize, Compd(0.0f, 0.0f));
     invSignal.resize(signalSize, Compd(0.0f, 0.0f));
@@ -114,7 +117,7 @@ int main(void) {
     for (auto i=0u; i<10; ++i)
         printf("transData[%u]: %0.2f %0.2fi\n", i, transData[i].real(), transData[i].imag());
 
-    {
+    /*{
         printf("Inverse transforming...\n");
         std::vector<Compd> invData(srcImgXSize*srcImgYSize, Compd(0.0, 0.0));
         FFT_2D(&transData[0], &invData[0], srcImgXSize, srcImgYSize, 1u, true, true);
@@ -126,7 +129,7 @@ int main(void) {
             }
         }
         invImg.saveToFile("inverse.png");
-    }
+    }*/
 
     std::vector<double> ampSpectrum(srcImgXSize*srcImgYSize, 0.0);
     std::vector<double> phaseSpectrum(srcImgXSize*srcImgYSize, 0.0);
@@ -145,12 +148,12 @@ int main(void) {
 
     for (auto y=0u; y<srcImgYSize; ++y) {
         for (auto x=0u; x<srcImgXSize; ++x) {
+            auto xx = (x+srcImgXSize/2)%srcImgXSize;
+            auto yy = (y+srcImgYSize/2)%srcImgYSize;
             double r = 255*(0.1*std::log(ampSpectrum[x+y*srcImgXSize]/255.0)+1.0);
             if (r<0.0) r = 0.0;
-            if (y==0 && x<10)
-                printf("r %u: %0.2f\n", x, r);
-            ampSpectrumImg.setPixel(x, y, sf::Color(r, 0, 0));
-            phaseSpectrumImg.setPixel(x, y, sf::Color(255*(phaseSpectrum[x+y*srcImgXSize]/PI2), 0, 0));
+            ampSpectrumImg.setPixel(xx, yy, sf::Color(r, 0, 0));
+            phaseSpectrumImg.setPixel(xx, yy, sf::Color(255*(phaseSpectrum[x+y*srcImgXSize]/PI2), 0, 0));
         }
     }
 
@@ -158,40 +161,45 @@ int main(void) {
     phaseSpectrumImg.saveToFile("phaseSpectrum.png");
 
     printf("Inverse transforming from spectri...\n");
-    const auto spectriImgXSize = ampSpectrumImg.getSize().x;
-    const auto spectriImgYSize = ampSpectrumImg.getSize().y;
-    const auto* ampSpectrumImgData = ampSpectrumImg.getPixelsPtr();
-    const auto* phaseSpectrumImgData = phaseSpectrumImg.getPixelsPtr();
+    {
+        //sf::Image ampSpectrumImg, phaseSpectrumImg;
+        //ampSpectrumImg.loadFromFile(fileN)
 
-    std::vector<Compd> spectrumData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
-    for (auto y=0u; y<spectriImgYSize; ++y) {
-        for (auto x=0u; x<spectriImgXSize; ++x) {
-            if (y==0 && x<10)
-                printf("r(amp) %u: %0.2f\n", x, ampSpectrumImgData[(x+y*spectriImgXSize)*4]);
-            double amp = 255.0*std::pow(10.0, (10.0*(ampSpectrumImgData[(x+y*spectriImgXSize)*4]/255.0)-10.0));
-            if (y==0 && x<10)
-                printf("amp %u: %0.2f\n", x, amp);
+        const auto spectriImgXSize = ampSpectrumImg.getSize().x;
+        const auto spectriImgYSize = ampSpectrumImg.getSize().y;
+        const auto* ampSpectrumImgData = ampSpectrumImg.getPixelsPtr();
+        const auto* phaseSpectrumImgData = phaseSpectrumImg.getPixelsPtr();
 
-            amp *= spectriImgXSize*spectriImgYSize;
-            double phase = phaseSpectrumImgData[(x+y*spectriImgXSize)*4]*(PI2/255.0);
-            spectrumData[x+y*spectriImgXSize] =  Compd(amp*std::cos(phase), amp*std::sin(phase));
+        std::vector<Compd> spectrumData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
+        for (auto y=0u; y<spectriImgYSize; ++y) {
+            for (auto x=0u; x<spectriImgXSize; ++x) {
+                auto xx = (x+srcImgXSize/2)%srcImgXSize;
+                auto yy = (y+srcImgYSize/2)%srcImgYSize;
+                double amp = 255.0*std::exp((10.0*(ampSpectrumImgData[(xx+yy*spectriImgXSize)*4]/255.0)-10.0));
+                amp *= spectriImgXSize*spectriImgYSize;
+                double phase = phaseSpectrumImgData[(xx+yy*spectriImgXSize)*4]*(PI2/255.0);
+                spectrumData[x+y*spectriImgXSize] =  Compd(amp*std::cos(phase), amp*std::sin(phase));
+            }
         }
-    }
 
-    for (auto i=0u; i<10; ++i)
-        printf("spectrumData[%u]: %0.2f %0.2fi\n", i, spectrumData[i].real(), spectrumData[i].imag());
+        for (auto i=0u; i<10; ++i)
+            printf("spectrumData[%u]: %0.2f %0.2fi\n", i, spectrumData[i].real(), spectrumData[i].imag());
 
-    std::vector<Compd> spectriInvData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
-    FFT_2D(&spectrumData[0], &spectriInvData[0], spectriImgXSize, spectriImgYSize, 1u, true, true);
+        std::vector<Compd> spectriInvData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
+        FFT_2D(&spectrumData[0], &spectriInvData[0], spectriImgXSize, spectriImgYSize, 1u, true, true);
 
-    sf::Image invImg;
-    invImg.create(spectriImgXSize, spectriImgYSize);
-    for (auto y=0u; y<spectriImgYSize; ++y) {
-        for (auto x=0u; x<spectriImgXSize; ++x) {
-            invImg.setPixel(x, y, sf::Color(spectriInvData[x+y*spectriImgXSize].real(), 0, 0));
+        sf::Image invImg;
+        invImg.create(spectriImgXSize, spectriImgYSize);
+        for (auto y=0u; y<spectriImgYSize; ++y) {
+            for (auto x=0u; x<spectriImgXSize; ++x) {
+                int r = spectriInvData[x+y*spectriImgXSize].real();
+                if (r<0) r=0;
+                if (r>255) r=255;
+                invImg.setPixel(x, y, sf::Color(r, 0, 0));
+            }
         }
+        invImg.saveToFile("spectriInverse.png");
     }
-    invImg.saveToFile("spectriInverse.png");
 
     /*while (window.isOpen())
     {
