@@ -1,11 +1,9 @@
 #include "Fourier.hpp"
 
+#include <array>
 #include <vector>
 #include <cmath>
 #include <SFML/Graphics.hpp>
-
-
-#define E 2.718281828459045
 
 
 using namespace std;
@@ -77,7 +75,7 @@ int main(void) {
     auto transSignalGraph = getGraph(transSignal, 0, 300, 1.0f, 0.5f);
     auto invSignalGraph = getGraph(invSignal, 0, 500, 1.0f, 50.0f);
 
-    //  Signal spectri
+    //  Signal spectra
     vector<float> signalAmpSpectrum;
     vector<float> signalPhaseSpectrum;
 
@@ -92,116 +90,146 @@ int main(void) {
     //Fourier::invDFT(signalAmpSpectrum, signalPhaseSpectrum, invSignal, signalSize, true);
     //auto invSignalGraph = getGraph(invSignal, signalSize, 0, 500, 1.0f, 25.0f);
 
+/*
+    {
+        printf("Loading image...\n");
+        sf::Image srcImg;
+        srcImg.loadFromFile("res/perlinNoise2.png");
 
+        const auto srcImgXSize = srcImg.getSize().x;
+        const auto srcImgYSize = srcImg.getSize().y;
+        const auto* srcImgData = srcImg.getPixelsPtr();
 
-    sf::Image srcImg;
-    printf("Loading image...\n");
-    srcImg.loadFromFile("res/fractal.png");
+        printf("Converting data...\n");
+        std::vector<Compd> emptyData(srcImgXSize*srcImgYSize, Compd(0.0, 0.0));
+        std::array<std::vector<Compd>, 4> srcData = { emptyData, emptyData, emptyData, emptyData };
+        std::array<std::vector<Compd>, 4> transData = { emptyData, emptyData, emptyData, emptyData };
 
-    const auto srcImgXSize = srcImg.getSize().x;
-    const auto srcImgYSize = srcImg.getSize().y;
-    const auto* srcImgData = srcImg.getPixelsPtr();
-
-    printf("Converting data...\n");
-    std::vector<Compd> srcData(srcImgXSize*srcImgYSize, Compd(0.0, 0.0));
-    std::vector<Compd> transData(srcImgXSize*srcImgYSize, Compd(0.0, 0.0));
-
-    for (auto y=0u; y<srcImgYSize; ++y)
-        for (auto x=0u; x<srcImgXSize; ++x) {
-            srcData[x+y*srcImgXSize] = Compd((double)srcImgData[(x+y*srcImgXSize)*4], 0.0);
-        }
-
-    printf("Transforming...\n");
-    FFT_2D(&srcData[0], &transData[0], srcImgXSize, srcImgYSize, 1u, false, true);
-
-    for (auto i=0u; i<10; ++i)
-        printf("transData[%u]: %0.2f %0.2fi\n", i, transData[i].real(), transData[i].imag());
-
-    /*{
-        printf("Inverse transforming...\n");
-        std::vector<Compd> invData(srcImgXSize*srcImgYSize, Compd(0.0, 0.0));
-        FFT_2D(&transData[0], &invData[0], srcImgXSize, srcImgYSize, 1u, true, true);
-        sf::Image invImg;
-        invImg.create(srcImgXSize, srcImgYSize);
         for (auto y=0u; y<srcImgYSize; ++y) {
             for (auto x=0u; x<srcImgXSize; ++x) {
-                invImg.setPixel(x, y, sf::Color(invData[x+y*srcImgXSize].real(), 0, 0));
+                srcData[0][x+y*srcImgXSize] = Compd((double)srcImgData[(x+y*srcImgXSize)*4], 0.0);
+                srcData[1][x+y*srcImgXSize] = Compd((double)srcImgData[(x+y*srcImgXSize)*4+1], 0.0);
+                srcData[2][x+y*srcImgXSize] = Compd((double)srcImgData[(x+y*srcImgXSize)*4+2], 0.0);
+                //srcData[3][x+y*srcImgXSize] = Compd((double)srcImgData[(x+y*srcImgXSize)*4+3], 0.0);
             }
         }
-        invImg.saveToFile("inverse.png");
-    }*/
 
-    std::vector<double> ampSpectrum(srcImgXSize*srcImgYSize, 0.0);
-    std::vector<double> phaseSpectrum(srcImgXSize*srcImgYSize, 0.0);
+        printf("Transforming...\n");
+        printf("Red channel:\n");
+        FFT_2D(&srcData[0][0], &transData[0][0], srcImgXSize, srcImgYSize, 1u, false, true);
+        printf("Green channel:\n");
+        FFT_2D(&srcData[1][0], &transData[1][0], srcImgXSize, srcImgYSize, 1u, false, true);
+        printf("Blue channel:\n");
+        FFT_2D(&srcData[2][0], &transData[2][0], srcImgXSize, srcImgYSize, 1u, false, true);
+        //printf("Alpha channel:\n");
+        //FFT_2D(&srcData[3][0], &transData[3][0], srcImgXSize, srcImgYSize, 1u, false, true);
 
-    AmplitudeSpectrum(transData, ampSpectrum, true);
-    PhaseSpectrum(transData, phaseSpectrum, true);
+        printf("Calculating amplitude and phase spectra...\n");
+        std::vector<double> emptyDataDouble(srcImgXSize*srcImgYSize, 0.0);
+        std::array<std::vector<double>, 4> ampSpectrum { emptyDataDouble, emptyDataDouble, emptyDataDouble, emptyDataDouble };
+        std::array<std::vector<double>, 4> phaseSpectrum { emptyDataDouble, emptyDataDouble, emptyDataDouble, emptyDataDouble };
 
-    printf("Writing amplitude and phase spectri in files...\n");
-    sf::Image ampSpectrumImg, phaseSpectrumImg;
-    ampSpectrumImg.create(srcImgXSize, srcImgYSize);
-    phaseSpectrumImg.create(srcImgXSize, srcImgYSize);
+        AmplitudeSpectrum(transData[0], ampSpectrum[0], true);
+        AmplitudeSpectrum(transData[1], ampSpectrum[1], true);
+        AmplitudeSpectrum(transData[2], ampSpectrum[2], true);
+        //AmplitudeSpectrum(transData[3], ampSpectrum[3], true);
+        PhaseSpectrum(transData[0], phaseSpectrum[0], true);
+        PhaseSpectrum(transData[1], phaseSpectrum[1], true);
+        PhaseSpectrum(transData[2], phaseSpectrum[2], true);
+        //PhaseSpectrum(transData[3], phaseSpectrum[3], true);
 
-    for (auto i=0u; i<10; ++i)
-        printf("ampSpectrum[%u]: %0.2f\n", i, ampSpectrum[i]);
+        printf("Writing amplitude and phase spectra in files...\n");
+        sf::Image ampSpectrumImg, phaseSpectrumImg;
+        ampSpectrumImg.create(srcImgXSize, srcImgYSize);
+        phaseSpectrumImg.create(srcImgXSize, srcImgYSize);
 
+        for (auto y=0u; y<srcImgYSize; ++y) {
+            for (auto x=0u; x<srcImgXSize; ++x) {
+                auto xx = (x+srcImgXSize/2)%srcImgXSize;
+                auto yy = (y+srcImgYSize/2)%srcImgYSize;
 
-    for (auto y=0u; y<srcImgYSize; ++y) {
-        for (auto x=0u; x<srcImgXSize; ++x) {
-            auto xx = (x+srcImgXSize/2)%srcImgXSize;
-            auto yy = (y+srcImgYSize/2)%srcImgYSize;
-            double r = 255*(0.1*std::log(ampSpectrum[x+y*srcImgXSize]/255.0)+1.0);
-            if (r<0.0) r = 0.0;
-            ampSpectrumImg.setPixel(xx, yy, sf::Color(r, 0, 0));
-            phaseSpectrumImg.setPixel(xx, yy, sf::Color(255*(phaseSpectrum[x+y*srcImgXSize]/PI2), 0, 0));
+                double r = 255*(0.1*std::log(ampSpectrum[0][x+y*srcImgXSize]/255.0)+1.0);
+                if (r<0.0) r = 0.0;
+                double g = 255*(0.1*std::log(ampSpectrum[1][x+y*srcImgXSize]/255.0)+1.0);
+                if (g<0.0) g = 0.0;
+                double b = 255*(0.1*std::log(ampSpectrum[2][x+y*srcImgXSize]/255.0)+1.0);
+                if (b<0.0) b = 0.0;
+                double a = 255.0;
+                //double a = 255*(0.1*std::log(ampSpectrum[3][x+y*srcImgXSize]/255.0)+1.0);
+                //if (a<0.0) a = 0.0;
+
+                ampSpectrumImg.setPixel(xx, yy, sf::Color(r, g, b, a));
+
+                phaseSpectrumImg.setPixel(xx, yy, sf::Color(255*(phaseSpectrum[0][x+y*srcImgXSize]/PI2),
+                                                            255*(phaseSpectrum[1][x+y*srcImgXSize]/PI2),
+                                                            255*(phaseSpectrum[2][x+y*srcImgXSize]/PI2)));//,
+                                                            //255*(phaseSpectrum[3][x+y*srcImgXSize]/PI2)));
+            }
         }
+
+        ampSpectrumImg.saveToFile("ampSpectrum.png");
+        phaseSpectrumImg.saveToFile("phaseSpectrum.png");
     }
+*/
 
-    ampSpectrumImg.saveToFile("ampSpectrum.png");
-    phaseSpectrumImg.saveToFile("phaseSpectrum.png");
-
-    printf("Inverse transforming from spectri...\n");
     {
-        //sf::Image ampSpectrumImg, phaseSpectrumImg;
-        //ampSpectrumImg.loadFromFile(fileN)
+        printf("Inverse transforming from spectra...\n");
+        sf::Image ampSpectrumImg, phaseSpectrumImg;
+        ampSpectrumImg.loadFromFile("ampSpectrum.png");
+        phaseSpectrumImg.loadFromFile("phaseSpectrum.png");
 
-        const auto spectriImgXSize = ampSpectrumImg.getSize().x;
-        const auto spectriImgYSize = ampSpectrumImg.getSize().y;
+        const auto spectraImgXSize = ampSpectrumImg.getSize().x;
+        const auto spectraImgYSize = ampSpectrumImg.getSize().y;
         const auto* ampSpectrumImgData = ampSpectrumImg.getPixelsPtr();
         const auto* phaseSpectrumImgData = phaseSpectrumImg.getPixelsPtr();
 
-        std::vector<Compd> spectrumData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
-        for (auto y=0u; y<spectriImgYSize; ++y) {
-            for (auto x=0u; x<spectriImgXSize; ++x) {
-                auto xx = (x+srcImgXSize/2)%srcImgXSize;
-                auto yy = (y+srcImgYSize/2)%srcImgYSize;
-                double amp = 255.0*std::exp((10.0*(ampSpectrumImgData[(xx+yy*spectriImgXSize)*4]/255.0)-10.0));
-                amp *= spectriImgXSize*spectriImgYSize;
-                double phase = phaseSpectrumImgData[(xx+yy*spectriImgXSize)*4]*(PI2/255.0);
-                spectrumData[x+y*spectriImgXSize] =  Compd(amp*std::cos(phase), amp*std::sin(phase));
+        printf("Converting data...\n");
+        std::vector<Compd> emptyDataCompd(spectraImgXSize*spectraImgYSize, Compd(0.0, 0.0));
+        std::array<std::vector<Compd>, 4> spectrumData { emptyDataCompd, emptyDataCompd, emptyDataCompd, emptyDataCompd };
+        for (auto y=0u; y<spectraImgYSize; ++y) {
+            for (auto x=0u; x<spectraImgXSize; ++x) {
+                auto xx = (x+spectraImgXSize/2)%spectraImgXSize;
+                auto yy = (y+spectraImgYSize/2)%spectraImgYSize;
+
+                //for (auto i=0u; i<4; ++i) {
+                for (auto i=0u; i<3; ++i) {
+                    double amp = 255.0*std::exp((10.0*(ampSpectrumImgData[(xx+yy*spectraImgXSize)*4+i]/255.0)-10.0));
+                    amp *= spectraImgXSize*spectraImgYSize;
+                    double phase = phaseSpectrumImgData[(xx+yy*spectraImgXSize)*4+i]*(PI2/255.0);
+                    spectrumData[i][x+y*spectraImgXSize] =  Compd(amp*std::cos(phase), amp*std::sin(phase));
+                }
             }
         }
 
-        for (auto i=0u; i<10; ++i)
-            printf("spectrumData[%u]: %0.2f %0.2fi\n", i, spectrumData[i].real(), spectrumData[i].imag());
-
-        std::vector<Compd> spectriInvData(spectriImgXSize*spectriImgYSize, Compd(0.0, 0.0));
-        FFT_2D(&spectrumData[0], &spectriInvData[0], spectriImgXSize, spectriImgYSize, 1u, true, true);
+        printf("Transforming...\n");
+        std::array<std::vector<Compd>, 4> spectraInvData { emptyDataCompd, emptyDataCompd, emptyDataCompd, emptyDataCompd };
+        FFT_2D(&spectrumData[0][0], &spectraInvData[0][0], spectraImgXSize, spectraImgYSize, 1u, true, true);
+        FFT_2D(&spectrumData[1][0], &spectraInvData[1][0], spectraImgXSize, spectraImgYSize, 1u, true, true);
+        FFT_2D(&spectrumData[2][0], &spectraInvData[2][0], spectraImgXSize, spectraImgYSize, 1u, true, true);
+        //FFT_2D(&spectrumData[3][0], &spectraInvData[3][0], spectraImgXSize, spectraImgYSize, 1u, true, true);
 
         sf::Image invImg;
-        invImg.create(spectriImgXSize, spectriImgYSize);
-        for (auto y=0u; y<spectriImgYSize; ++y) {
-            for (auto x=0u; x<spectriImgXSize; ++x) {
-                int r = spectriInvData[x+y*spectriImgXSize].real();
-                if (r<0) r=0;
-                if (r>255) r=255;
-                invImg.setPixel(x, y, sf::Color(r, 0, 0));
+        invImg.create(spectraImgXSize, spectraImgYSize);
+        for (auto y=0u; y<spectraImgYSize; ++y) {
+            for (auto x=0u; x<spectraImgXSize; ++x) {
+                int r = spectraInvData[0][x+y*spectraImgXSize].real();
+                if (r<0) r=0; else if (r>255) r=255;
+                int g = spectraInvData[1][x+y*spectraImgXSize].real();
+                if (g<0) g=0; else if (g>255) g=255;
+                int b = spectraInvData[2][x+y*spectraImgXSize].real();
+                if (b<0) b=0; else if (b>255) b=255;
+                //int a = spectraInvData[3][x+y*spectraImgXSize].real();
+                //if (a<0) a=0; else if (a>255) a=255;
+                int a = 255;
+
+                invImg.setPixel(x, y, sf::Color(r, g, b, a));
             }
         }
-        invImg.saveToFile("spectriInverse.png");
+        invImg.saveToFile("spectraInverse.png");
     }
 
-    /*while (window.isOpen())
+/*
+    while (window.isOpen())
     {
         // Event processing
         sf::Event event;

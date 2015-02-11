@@ -12,7 +12,7 @@
 
 namespace Fourier {
 
-    typedef std::complex<float> Compf;
+    //typedef std::complex<float> Compf;
     typedef std::complex<double> Compd;
 
     void DFT(const std::vector<Compd>& src, std::vector<Compd>& dest, bool inverse = false, bool printTime = false);
