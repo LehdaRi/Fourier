@@ -1,7 +1,9 @@
 bin/
 obj/
+research/
 *.cbp
 *.layout
 *.depend
 *.cbTemp
 *.xcf
+*.png
